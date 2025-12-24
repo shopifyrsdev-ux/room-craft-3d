@@ -9,112 +9,114 @@ interface RoomProps {
 }
 
 const Room = ({ width, length, height }: RoomProps) => {
-  const { wallColors, floorColor, ceilingColor } = useRoomStore();
+  const { wallColors, floorColor } = useRoomStore();
 
-  // Create materials with proper colors
-  const materials = useMemo(() => ({
-    floor: new THREE.MeshStandardMaterial({ 
-      color: floorColor,
-      roughness: 0.8,
-      metalness: 0.1,
-    }),
-    ceiling: new THREE.MeshStandardMaterial({ 
-      color: ceilingColor,
-      roughness: 0.9,
-      metalness: 0,
-      side: THREE.BackSide,
-    }),
-    wallNorth: new THREE.MeshStandardMaterial({ 
-      color: wallColors.north,
-      roughness: 0.9,
-      metalness: 0,
-      side: THREE.DoubleSide,
-    }),
-    wallSouth: new THREE.MeshStandardMaterial({ 
-      color: wallColors.south,
-      roughness: 0.9,
-      metalness: 0,
-      side: THREE.DoubleSide,
-    }),
-    wallEast: new THREE.MeshStandardMaterial({ 
-      color: wallColors.east,
-      roughness: 0.9,
-      metalness: 0,
-      side: THREE.DoubleSide,
-    }),
-    wallWest: new THREE.MeshStandardMaterial({ 
-      color: wallColors.west,
-      roughness: 0.9,
-      metalness: 0,
-      side: THREE.DoubleSide,
-    }),
-  }), [wallColors, floorColor, ceilingColor]);
-
-  const wallThickness = 0.1;
+  const wallThickness = 0.08;
+  const wallHeight = height;
 
   return (
     <group>
-      {/* Floor */}
+      {/* Floor - main surface for placing objects */}
       <mesh 
         rotation={[-Math.PI / 2, 0, 0]} 
-        position={[0, 0, 0]}
+        position={[0, 0.01, 0]}
         receiveShadow
+        name="floor"
       >
         <planeGeometry args={[width, length]} />
-        <primitive object={materials.floor} attach="material" />
-      </mesh>
-
-      {/* Ceiling */}
-      <mesh 
-        rotation={[Math.PI / 2, 0, 0]} 
-        position={[0, height, 0]}
-      >
-        <planeGeometry args={[width, length]} />
-        <primitive object={materials.ceiling} attach="material" />
-      </mesh>
-
-      {/* North Wall (back, -Z) */}
-      <mesh 
-        position={[0, height / 2, -length / 2]}
-        receiveShadow
-      >
-        <boxGeometry args={[width, height, wallThickness]} />
-        <primitive object={materials.wallNorth} attach="material" />
-      </mesh>
-
-      {/* South Wall (front, +Z) - transparent/open for viewing */}
-      <mesh 
-        position={[0, height / 2, length / 2]}
-        receiveShadow
-      >
-        <boxGeometry args={[width, height, wallThickness]} />
         <meshStandardMaterial 
-          color={wallColors.south}
-          transparent
-          opacity={0.3}
-          roughness={0.9}
-          side={THREE.DoubleSide}
+          color={floorColor}
+          roughness={0.8}
+          metalness={0.1}
         />
       </mesh>
 
-      {/* East Wall (right, +X) */}
-      <mesh 
-        position={[width / 2, height / 2, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-        receiveShadow
-      >
-        <boxGeometry args={[length, height, wallThickness]} />
-        <primitive object={materials.wallEast} attach="material" />
+      {/* Floor base for depth */}
+      <mesh position={[0, -0.05, 0]}>
+        <boxGeometry args={[width + wallThickness * 2, 0.1, length + wallThickness * 2]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={0.9} />
       </mesh>
 
-      {/* West Wall (left, -X) */}
+      {/* Back Wall (North, -Z) - fully visible */}
       <mesh 
-        position={[-width / 2, height / 2, 0]}
-        rotation={[0, Math.PI / 2, 0]}
+        position={[0, wallHeight / 2, -length / 2 - wallThickness / 2]}
+        receiveShadow
+        castShadow
+      >
+        <boxGeometry args={[width + wallThickness * 2, wallHeight, wallThickness]} />
+        <meshStandardMaterial 
+          color={wallColors.north}
+          roughness={0.9}
+          metalness={0}
+        />
+      </mesh>
+
+      {/* Left Wall (West, -X) - fully visible */}
+      <mesh 
+        position={[-width / 2 - wallThickness / 2, wallHeight / 2, 0]}
+        receiveShadow
+        castShadow
+      >
+        <boxGeometry args={[wallThickness, wallHeight, length]} />
+        <meshStandardMaterial 
+          color={wallColors.west}
+          roughness={0.9}
+          metalness={0}
+        />
+      </mesh>
+
+      {/* Right Wall (East, +X) - semi-transparent for viewing */}
+      <mesh 
+        position={[width / 2 + wallThickness / 2, wallHeight / 2, 0]}
         receiveShadow
       >
-        <boxGeometry args={[length, height, wallThickness]} />
-        <primitive object={materials.wallWest} attach="material" />
+        <boxGeometry args={[wallThickness, wallHeight, length]} />
+        <meshStandardMaterial 
+          color={wallColors.east}
+          roughness={0.9}
+          transparent
+          opacity={0.3}
+        />
+      </mesh>
+
+      {/* Front Wall (South, +Z) - very transparent for camera view */}
+      <mesh 
+        position={[0, wallHeight / 2, length / 2 + wallThickness / 2]}
+      >
+        <boxGeometry args={[width + wallThickness * 2, wallHeight, wallThickness]} />
+        <meshStandardMaterial 
+          color={wallColors.south}
+          transparent
+          opacity={0.15}
+          roughness={0.9}
+        />
+      </mesh>
+
+      {/* Ceiling frame (just edges, no solid ceiling) */}
+      {/* Back edge */}
+      <mesh position={[0, wallHeight, -length / 2]}>
+        <boxGeometry args={[width, 0.05, 0.05]} />
+        <meshStandardMaterial color="#2a2a2a" />
+      </mesh>
+      {/* Left edge */}
+      <mesh position={[-width / 2, wallHeight, 0]}>
+        <boxGeometry args={[0.05, 0.05, length]} />
+        <meshStandardMaterial color="#2a2a2a" />
+      </mesh>
+      {/* Right edge */}
+      <mesh position={[width / 2, wallHeight, 0]}>
+        <boxGeometry args={[0.05, 0.05, length]} />
+        <meshStandardMaterial color="#2a2a2a" />
+      </mesh>
+
+      {/* Baseboard trim */}
+      <mesh position={[0, 0.05, -length / 2 + 0.02]}>
+        <boxGeometry args={[width, 0.1, 0.04]} />
+        <meshStandardMaterial color="#1a1a1a" />
+      </mesh>
+      <mesh position={[-width / 2 + 0.02, 0.05, 0]}>
+        <boxGeometry args={[0.04, 0.1, length]} />
+        <meshStandardMaterial color="#1a1a1a" />
       </mesh>
     </group>
   );
