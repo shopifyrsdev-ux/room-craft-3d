@@ -3,6 +3,16 @@ import { persist } from 'zustand/middleware';
 
 export type Unit = 'meters' | 'feet';
 
+export interface Opening {
+  id: string;
+  type: 'door' | 'window';
+  wall: 'north' | 'south' | 'east' | 'west';
+  position: number; // 0-1 along wall
+  width: number;
+  height: number;
+  elevation: number; // height from floor (for windows)
+}
+
 export interface RoomDimensions {
   width: number;
   length: number;
@@ -32,6 +42,12 @@ export interface RoomState {
   dimensions: RoomDimensions | null;
   setDimensions: (dimensions: RoomDimensions) => void;
   
+  // Openings (doors/windows)
+  openings: Opening[];
+  addOpening: (opening: Opening) => void;
+  updateOpening: (id: string, updates: Partial<Opening>) => void;
+  removeOpening: (id: string) => void;
+  
   // Furniture
   furniture: FurnitureItem[];
   addFurniture: (item: Omit<FurnitureItem, 'id'>) => void;
@@ -51,6 +67,8 @@ export interface RoomState {
   // UI state
   showGrid: boolean;
   toggleGrid: () => void;
+  cameraLocked: boolean;
+  toggleCameraLock: () => void;
   
   // Actions
   resetRoom: () => void;
@@ -72,6 +90,19 @@ export const useRoomStore = create<RoomState>()(
     (set, get) => ({
       dimensions: null,
       setDimensions: (dimensions) => set({ dimensions }),
+      
+      openings: [],
+      addOpening: (opening) => set((state) => ({
+        openings: [...state.openings, opening],
+      })),
+      updateOpening: (id, updates) => set((state) => ({
+        openings: state.openings.map((o) =>
+          o.id === id ? { ...o, ...updates } : o
+        ),
+      })),
+      removeOpening: (id) => set((state) => ({
+        openings: state.openings.filter((o) => o.id !== id),
+      })),
       
       furniture: [],
       addFurniture: (item) => set((state) => ({
@@ -100,15 +131,19 @@ export const useRoomStore = create<RoomState>()(
       
       showGrid: true,
       toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
+      cameraLocked: false,
+      toggleCameraLock: () => set((state) => ({ cameraLocked: !state.cameraLocked })),
       
       resetRoom: () => set({
         dimensions: null,
+        openings: [],
         furniture: [],
         selectedFurnitureId: null,
         wallColors: defaultWallColors,
         floorColor: '#8b7355',
         ceilingColor: '#ffffff',
         showGrid: true,
+        cameraLocked: false,
       }),
       
       // Placeholder for undo/redo - simplified for MVP
@@ -121,6 +156,7 @@ export const useRoomStore = create<RoomState>()(
       name: 'room-designer-storage',
       partialize: (state) => ({
         dimensions: state.dimensions,
+        openings: state.openings,
         furniture: state.furniture,
         wallColors: state.wallColors,
         floorColor: state.floorColor,

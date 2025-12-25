@@ -7,7 +7,7 @@ import FurnitureObject from './FurnitureObject';
 import * as THREE from 'three';
 
 const Scene = () => {
-  const { dimensions, furniture, showGrid, selectFurniture, selectedFurnitureId } = useRoomStore();
+  const { dimensions, furniture, showGrid, cameraLocked, selectFurniture, selectedFurnitureId } = useRoomStore();
   
   if (!dimensions) return null;
 
@@ -37,6 +37,7 @@ const Scene = () => {
         maxPolarAngle={Math.PI / 2 - 0.05}
         minPolarAngle={0.1}
         target={[0, height * 0.3, 0]}
+        enabled={!cameraLocked}
       />
 
       {/* Soft ambient lighting */}
