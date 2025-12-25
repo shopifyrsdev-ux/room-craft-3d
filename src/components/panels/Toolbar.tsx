@@ -8,6 +8,8 @@ import {
   Save,
   Home,
   Box,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -19,6 +21,8 @@ const Toolbar = ({ onExit }: ToolbarProps) => {
   const { 
     showGrid, 
     toggleGrid, 
+    cameraLocked,
+    toggleCameraLock,
     resetRoom,
     furniture,
     dimensions,
@@ -67,6 +71,18 @@ const Toolbar = ({ onExit }: ToolbarProps) => {
       >
         <Grid3X3 className="w-4 h-4" />
         Grid
+      </Button>
+
+      {/* Camera Lock Toggle */}
+      <Button
+        variant={cameraLocked ? 'secondary' : 'ghost'}
+        size="sm"
+        onClick={toggleCameraLock}
+        className="gap-2"
+        title={cameraLocked ? 'Unlock camera to rotate/pan view' : 'Lock camera to drag furniture'}
+      >
+        {cameraLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+        {cameraLocked ? 'Unlock' : 'Lock'}
       </Button>
 
       <div className="h-6 w-px bg-border" />
