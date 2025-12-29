@@ -31,11 +31,20 @@ export interface FurnitureItem {
   wall?: 'north' | 'south' | 'east' | 'west'; // For wall-mounted items like paintings
 }
 
+export type WallTexture = 'none' | 'brick' | 'wood' | 'wallpaper-stripe' | 'wallpaper-damask' | 'concrete';
+
 export interface WallColors {
   north: string;
   south: string;
   east: string;
   west: string;
+}
+
+export interface WallTextures {
+  north: WallTexture;
+  south: WallTexture;
+  east: WallTexture;
+  west: WallTexture;
 }
 
 export interface RoomState {
@@ -60,6 +69,8 @@ export interface RoomState {
   // Colors
   wallColors: WallColors;
   setWallColor: (wall: keyof WallColors, color: string) => void;
+  wallTextures: WallTextures;
+  setWallTexture: (wall: keyof WallTextures, texture: WallTexture) => void;
   floorColor: string;
   setFloorColor: (color: string) => void;
   ceilingColor: string;
@@ -84,6 +95,13 @@ const defaultWallColors: WallColors = {
   south: '#e8e4df',
   east: '#e8e4df',
   west: '#e8e4df',
+};
+
+const defaultWallTextures: WallTextures = {
+  north: 'none',
+  south: 'none',
+  east: 'none',
+  west: 'none',
 };
 
 export const useRoomStore = create<RoomState>()(
@@ -125,6 +143,10 @@ export const useRoomStore = create<RoomState>()(
       setWallColor: (wall, color) => set((state) => ({
         wallColors: { ...state.wallColors, [wall]: color },
       })),
+      wallTextures: defaultWallTextures,
+      setWallTexture: (wall, texture) => set((state) => ({
+        wallTextures: { ...state.wallTextures, [wall]: texture },
+      })),
       floorColor: '#8b7355',
       setFloorColor: (floorColor) => set({ floorColor }),
       ceilingColor: '#ffffff',
@@ -141,6 +163,7 @@ export const useRoomStore = create<RoomState>()(
         furniture: [],
         selectedFurnitureId: null,
         wallColors: defaultWallColors,
+        wallTextures: defaultWallTextures,
         floorColor: '#8b7355',
         ceilingColor: '#ffffff',
         showGrid: true,
@@ -160,6 +183,7 @@ export const useRoomStore = create<RoomState>()(
         openings: state.openings,
         furniture: state.furniture,
         wallColors: state.wallColors,
+        wallTextures: state.wallTextures,
         floorColor: state.floorColor,
         ceilingColor: state.ceilingColor,
       }),

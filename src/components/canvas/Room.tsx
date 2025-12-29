@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { useRoomStore, Opening } from '@/store/roomStore';
+import { useRoomStore, Opening, WallTexture } from '@/store/roomStore';
 import DraggableOpening from './DraggableOpening';
 import * as THREE from 'three';
+import { createWallTexture } from '@/lib/wallTextures';
 
 interface RoomProps {
   width: number;
@@ -43,7 +44,7 @@ const createWallWithOpenings = (
 };
 
 const Room = ({ width, length, height }: RoomProps) => {
-  const { wallColors, floorColor, openings } = useRoomStore();
+  const { wallColors, wallTextures, floorColor, openings } = useRoomStore();
 
   const wallThickness = 0.08;
 
@@ -104,6 +105,26 @@ const Room = ({ width, length, height }: RoomProps) => {
     });
   }, [width, length, height, openingsByWall]);
 
+  // Create texture materials for each wall
+  const wallMaterials = useMemo(() => {
+    const materials: Record<string, THREE.MeshStandardMaterial> = {};
+    
+    walls.forEach((wall) => {
+      const texture = createWallTexture(wallTextures[wall.name], wallColors[wall.name]);
+      
+      materials[wall.name] = new THREE.MeshStandardMaterial({
+        color: wallColors[wall.name],
+        roughness: 0.9,
+        transparent: wall.opacity < 1,
+        opacity: wall.opacity,
+        side: THREE.DoubleSide,
+        map: texture,
+      });
+    });
+    
+    return materials;
+  }, [walls, wallColors, wallTextures]);
+
   return (
     <group>
       {/* Floor */}
@@ -118,7 +139,7 @@ const Room = ({ width, length, height }: RoomProps) => {
         <meshStandardMaterial color="#1a1a1a" roughness={0.9} />
       </mesh>
 
-      {/* Walls with cutouts */}
+      {/* Walls with cutouts and textures */}
       {walls.map((wall) => (
         <mesh
           key={wall.name}
@@ -127,15 +148,8 @@ const Room = ({ width, length, height }: RoomProps) => {
           rotation={wall.rotation}
           receiveShadow
           castShadow={wall.opacity === 1}
-        >
-          <meshStandardMaterial
-            color={wallColors[wall.name]}
-            roughness={0.9}
-            transparent={wall.opacity < 1}
-            opacity={wall.opacity}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
+          material={wallMaterials[wall.name]}
+        />
       ))}
 
       {/* Draggable door/window frames */}
