@@ -1,8 +1,10 @@
-import { useRoomStore, FurnitureItem, WallColors } from '@/store/roomStore';
+import { useRoomStore, FurnitureItem, WallColors, WallTextures, WallTexture } from '@/store/roomStore';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, RotateCw } from 'lucide-react';
+import { TEXTURE_OPTIONS } from '@/lib/wallTextures';
 
 const PRESET_COLORS = [
   '#e8e4df', '#d4c4b0', '#b8a090', '#f5f5dc', '#e6d5b8',
@@ -19,6 +21,8 @@ const PropertiesPanel = () => {
     selectFurniture,
     wallColors,
     setWallColor,
+    wallTextures,
+    setWallTexture,
     floorColor,
     setFloorColor,
   } = useRoomStore();
@@ -103,34 +107,51 @@ const PropertiesPanel = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Wall Colors */}
+          {/* Wall Colors & Textures */}
           <div className="space-y-3">
-            <Label className="text-sm">Wall Colors</Label>
+            <Label className="text-sm">Wall Appearance</Label>
             {(Object.keys(wallColors) as Array<keyof WallColors>).map((wall) => (
-              <div key={wall} className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground w-12 capitalize">
-                  {wall}
-                </span>
-                <div className="flex gap-1 flex-1">
-                  {PRESET_COLORS.slice(0, 5).map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setWallColor(wall, color)}
-                      className={`w-6 h-6 rounded-md border transition-all ${
-                        wallColors[wall] === color
-                          ? 'border-primary'
-                          : 'border-transparent'
-                      }`}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
+              <div key={wall} className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground w-12 capitalize">
+                    {wall}
+                  </span>
+                  <div className="flex gap-1 flex-1">
+                    {PRESET_COLORS.slice(0, 5).map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setWallColor(wall, color)}
+                        className={`w-6 h-6 rounded-md border transition-all ${
+                          wallColors[wall] === color
+                            ? 'border-primary'
+                            : 'border-transparent'
+                        }`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                  <Input
+                    type="color"
+                    value={wallColors[wall]}
+                    onChange={(e) => setWallColor(wall, e.target.value)}
+                    className="h-6 w-8 p-0 cursor-pointer"
+                  />
                 </div>
-                <Input
-                  type="color"
-                  value={wallColors[wall]}
-                  onChange={(e) => setWallColor(wall, e.target.value)}
-                  className="h-6 w-8 p-0 cursor-pointer"
-                />
+                <Select
+                  value={wallTextures[wall]}
+                  onValueChange={(value: WallTexture) => setWallTexture(wall, value)}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select texture" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TEXTURE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             ))}
           </div>
