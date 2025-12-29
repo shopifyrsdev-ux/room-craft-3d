@@ -1,4 +1,8 @@
-import { useRoomStore } from '@/store/roomStore';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useRoomStore, DesignData } from '@/store/roomStore';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { 
   Grid3X3, 
@@ -6,12 +10,17 @@ import {
   Redo2, 
   RotateCcw, 
   Save,
-  Home,
+  FolderOpen,
   Box,
   Lock,
   Unlock,
+  LogIn,
+  LogOut,
+  User,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import SaveDesignDialog from '@/components/dialogs/SaveDesignDialog';
+import LoadDesignDialog from '@/components/dialogs/LoadDesignDialog';
 
 interface ToolbarProps {
   onExit: () => void;
@@ -26,11 +35,45 @@ const Toolbar = ({ onExit }: ToolbarProps) => {
     resetRoom,
     furniture,
     dimensions,
+    getDesignData,
+    loadDesign,
   } = useRoomStore();
 
-  const handleSave = () => {
-    // State is already persisted via zustand persist middleware
-    toast.success('Design saved to browser storage!');
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async (name: string) => {
+    if (!user) {
+      toast.error('Please sign in to save designs');
+      return;
+    }
+
+    setSaving(true);
+    const designData = getDesignData();
+
+    const { error } = await supabase
+      .from('room_designs')
+      .insert([{
+        user_id: user.id,
+        name,
+        design_data: JSON.parse(JSON.stringify(designData)),
+      }]);
+
+    if (error) {
+      toast.error('Failed to save design');
+    } else {
+      toast.success('Design saved!');
+      setSaveDialogOpen(false);
+    }
+    setSaving(false);
+  };
+
+  const handleLoad = (data: unknown) => {
+    loadDesign(data as DesignData);
   };
 
   const handleReset = () => {
@@ -45,89 +88,152 @@ const Toolbar = ({ onExit }: ToolbarProps) => {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success('Signed out');
+  };
+
   return (
-    <div className="glass-panel px-4 py-2 flex items-center gap-2">
-      {/* Logo / Exit */}
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        onClick={onExit}
-        className="gap-2 mr-4"
-      >
-        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-          <Box className="w-3 h-3 text-primary-foreground" />
-        </div>
-        <span className="font-display font-semibold">RoomForge</span>
-      </Button>
+    <>
+      <div className="glass-panel px-4 py-2 flex items-center gap-2">
+        {/* Logo / Exit */}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onExit}
+          className="gap-2 mr-4"
+        >
+          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <Box className="w-3 h-3 text-primary-foreground" />
+          </div>
+          <span className="font-display font-semibold">RoomForge</span>
+        </Button>
 
-      <div className="h-6 w-px bg-border" />
+        <div className="h-6 w-px bg-border" />
 
-      {/* Grid Toggle */}
-      <Button
-        variant={showGrid ? 'secondary' : 'ghost'}
-        size="sm"
-        onClick={toggleGrid}
-        className="gap-2"
-      >
-        <Grid3X3 className="w-4 h-4" />
-        Grid
-      </Button>
+        {/* Grid Toggle */}
+        <Button
+          variant={showGrid ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={toggleGrid}
+          className="gap-2"
+        >
+          <Grid3X3 className="w-4 h-4" />
+          Grid
+        </Button>
 
-      {/* Camera Lock Toggle */}
-      <Button
-        variant={cameraLocked ? 'secondary' : 'ghost'}
-        size="sm"
-        onClick={toggleCameraLock}
-        className="gap-2"
-        title={cameraLocked ? 'Unlock camera to rotate/pan view' : 'Lock camera to drag furniture'}
-      >
-        {cameraLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-        {cameraLocked ? 'Unlock' : 'Lock'}
-      </Button>
+        {/* Camera Lock Toggle */}
+        <Button
+          variant={cameraLocked ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={toggleCameraLock}
+          className="gap-2"
+          title={cameraLocked ? 'Unlock camera to rotate/pan view' : 'Lock camera to drag furniture'}
+        >
+          {cameraLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+          {cameraLocked ? 'Unlock' : 'Lock'}
+        </Button>
 
-      <div className="h-6 w-px bg-border" />
+        <div className="h-6 w-px bg-border" />
 
-      {/* Undo/Redo (placeholder for now) */}
-      <Button variant="ghost" size="icon" disabled className="h-8 w-8">
-        <Undo2 className="w-4 h-4" />
-      </Button>
-      <Button variant="ghost" size="icon" disabled className="h-8 w-8">
-        <Redo2 className="w-4 h-4" />
-      </Button>
+        {/* Undo/Redo (placeholder for now) */}
+        <Button variant="ghost" size="icon" disabled className="h-8 w-8">
+          <Undo2 className="w-4 h-4" />
+        </Button>
+        <Button variant="ghost" size="icon" disabled className="h-8 w-8">
+          <Redo2 className="w-4 h-4" />
+        </Button>
 
-      <div className="h-6 w-px bg-border" />
+        <div className="h-6 w-px bg-border" />
 
-      {/* Reset */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleReset}
-        className="gap-2 text-muted-foreground hover:text-foreground"
-      >
-        <RotateCcw className="w-4 h-4" />
-        Reset
-      </Button>
+        {/* Reset */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleReset}
+          className="gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <RotateCcw className="w-4 h-4" />
+          Reset
+        </Button>
 
-      <div className="flex-1" />
+        <div className="flex-1" />
 
-      {/* Room Info */}
-      {dimensions && (
-        <div className="text-xs text-muted-foreground mr-4">
-          {dimensions.width} × {dimensions.length} × {dimensions.height} {dimensions.unit}
-        </div>
-      )}
+        {/* Room Info */}
+        {dimensions && (
+          <div className="text-xs text-muted-foreground mr-4">
+            {dimensions.width} × {dimensions.length} × {dimensions.height} {dimensions.unit}
+          </div>
+        )}
 
-      {/* Save */}
-      <Button
-        variant="default"
-        size="sm"
-        onClick={handleSave}
-        className="gap-2"
-      >
-        <Save className="w-4 h-4" />
-        Save
-      </Button>
-    </div>
+        {/* Auth & Save/Load */}
+        {user ? (
+          <>
+            {/* Load */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLoadDialogOpen(true)}
+              className="gap-2"
+            >
+              <FolderOpen className="w-4 h-4" />
+              Load
+            </Button>
+
+            {/* Save */}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setSaveDialogOpen(true)}
+              className="gap-2 btn-glow"
+            >
+              <Save className="w-4 h-4" />
+              Save
+            </Button>
+
+            <div className="h-6 w-px bg-border" />
+
+            {/* User Menu */}
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center">
+                <User className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
+          </>
+        ) : (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => navigate('/auth')}
+            className="gap-2 btn-glow"
+          >
+            <LogIn className="w-4 h-4" />
+            Sign In to Save
+          </Button>
+        )}
+      </div>
+
+      <SaveDesignDialog
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        onSave={handleSave}
+        loading={saving}
+      />
+
+      <LoadDesignDialog
+        open={loadDialogOpen}
+        onOpenChange={setLoadDialogOpen}
+        onLoad={handleLoad}
+      />
+    </>
   );
 };
 

@@ -3,6 +3,16 @@ import { persist } from 'zustand/middleware';
 
 export type Unit = 'meters' | 'feet';
 
+export interface DesignData {
+  dimensions: RoomDimensions | null;
+  openings: Opening[];
+  furniture: FurnitureItem[];
+  wallColors: WallColors;
+  wallTextures: WallTextures;
+  floorColor: string;
+  ceilingColor: string;
+}
+
 export interface Opening {
   id: string;
   type: 'door' | 'window';
@@ -84,6 +94,8 @@ export interface RoomState {
   
   // Actions
   resetRoom: () => void;
+  loadDesign: (data: DesignData) => void;
+  getDesignData: () => DesignData;
   undo: () => void;
   redo: () => void;
   history: RoomState[];
@@ -169,6 +181,30 @@ export const useRoomStore = create<RoomState>()(
         showGrid: true,
         cameraLocked: false,
       }),
+      
+      loadDesign: (data) => set({
+        dimensions: data.dimensions,
+        openings: data.openings,
+        furniture: data.furniture,
+        wallColors: data.wallColors,
+        wallTextures: data.wallTextures,
+        floorColor: data.floorColor,
+        ceilingColor: data.ceilingColor,
+        selectedFurnitureId: null,
+      }),
+
+      getDesignData: () => {
+        const state = get();
+        return {
+          dimensions: state.dimensions,
+          openings: state.openings,
+          furniture: state.furniture,
+          wallColors: state.wallColors,
+          wallTextures: state.wallTextures,
+          floorColor: state.floorColor,
+          ceilingColor: state.ceilingColor,
+        };
+      },
       
       // Placeholder for undo/redo - simplified for MVP
       undo: () => {},
